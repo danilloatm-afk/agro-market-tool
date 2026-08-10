@@ -39,6 +39,12 @@
     <div id="price-column">
       <div class="card">
         <h2>Histórico de preços</h2>
+        <div class="date-filter">
+          <label>De <input type="date" id="date-from"></label>
+          <label>Até <input type="date" id="date-to"></label>
+          <button id="date-reset" type="button">Período todo</button>
+        </div>
+        <div id="period-summary"></div>
         <div id="chart-container">
           <canvas id="priceChart"></canvas>
         </div>
@@ -126,13 +132,20 @@
       }
     }
 
-    async function loadPrices(commodity) {
-      const res = await fetch(`/api/prices/${commodity}`);
-      const data = await res.json();
+    let currentHistory = [];
 
-      // build chart: group history by market, one line per market (top 6 by data points)
+    function fmtSignedPct(pct) {
+      if (pct === null || !isFinite(pct)) return "-";
+      const cls = pct >= 0 ? "pct-up" : "pct-down";
+      const sign = pct >= 0 ? "+" : "";
+      return `<span class="${cls}">${sign}${pct.toFixed(2)}%</span>`;
+    }
+
+    function renderChart(fromDate, toDate) {
+      const filtered = currentHistory.filter(row => (!fromDate || row.date >= fromDate) && (!toDate || row.date <= toDate));
+
       const byMarket = {};
-      for (const row of data.history) {
+      for (const row of filtered) {
         if (!byMarket[row.market]) byMarket[row.market] = [];
         byMarket[row.market].push({x: row.date, y: row.price});
       }
@@ -170,6 +183,42 @@
           }
         });
       }
+
+      const summaryDiv = document.getElementById("period-summary");
+      if (markets.length === 0) {
+        summaryDiv.innerHTML = "";
+      } else {
+        summaryDiv.innerHTML = markets.map(m => {
+          const points = byMarket[m];
+          const first = points[0].y;
+          const last = points[points.length - 1].y;
+          const pct = first ? ((last - first) / first) * 100 : null;
+          return `<div class="period-row"><span class="period-label">${m}</span>
+            <span>${first.toFixed(2)} → ${last.toFixed(2)}</span>
+            <span>${fmtSignedPct(pct)}</span></div>`;
+        }).join("");
+      }
+    }
+
+    async function loadPrices(commodity) {
+      const res = await fetch(`/api/prices/${commodity}`);
+      const data = await res.json();
+
+      currentHistory = data.history;
+
+      const dates = currentHistory.map(r => r.date).sort();
+      const fromInput = document.getElementById("date-from");
+      const toInput = document.getElementById("date-to");
+      if (dates.length > 0) {
+        fromInput.min = toInput.min = dates[0];
+        fromInput.max = toInput.max = dates[dates.length - 1];
+        fromInput.value = dates[0];
+        toInput.value = dates[dates.length - 1];
+      } else {
+        fromInput.value = toInput.value = "";
+      }
+
+      renderChart(fromInput.value, toInput.value);
 
       currentLatest = data.latest;
       const searchBox = document.getElementById("market-search");
@@ -210,6 +259,21 @@
 
     document.getElementById("market-search").addEventListener("input", (e) => {
       renderLatestTable(e.target.value);
+    });
+
+    document.getElementById("date-from").addEventListener("change", (e) => {
+      renderChart(e.target.value, document.getElementById("date-to").value);
+    });
+    document.getElementById("date-to").addEventListener("change", (e) => {
+      renderChart(document.getElementById("date-from").value, e.target.value);
+    });
+    document.getElementById("date-reset").addEventListener("click", () => {
+      const dates = currentHistory.map(r => r.date).sort();
+      const fromInput = document.getElementById("date-from");
+      const toInput = document.getElementById("date-to");
+      fromInput.value = dates[0] || "";
+      toInput.value = dates[dates.length - 1] || "";
+      renderChart(fromInput.value, toInput.value);
     });
 
     function updateThemeToggleIcon() {
