@@ -52,7 +52,7 @@
       <div class="card">
         <h2>Cotações atuais por fonte/praça</h2>
         <p class="hint">
-          O "sinal de compra" compara o preço atual com a faixa (mín-máx) já coletada pela ferramenta para aquela praça.
+          O "sinal de compra" compara o preço atual com a média móvel dos últimos dias coletados (até 14 dias) para aquela praça.
           Fica mais confiável a cada dia de coleta — não é recomendação de investimento.
         </p>
         <p class="hint" id="fertilizantes-note" style="display:none;">
@@ -105,7 +105,7 @@
     function fmtSignal(sig) {
       if (!sig) return "-";
       const info = SIGNAL_INFO[sig.label] || { text: sig.label, cls: "signal-unknown" };
-      const title = sig.days ? `${sig.days} dia(s) de histórico · média ${sig.avg}` : "";
+      const title = sig.days ? `${sig.days} dia(s) de histórico · média móvel (${sig.avg_window}d): ${sig.avg}` : "";
       return `<span class="signal-badge ${info.cls}" title="${title}">${info.text}</span>`;
     }
 
