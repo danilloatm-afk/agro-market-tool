@@ -51,10 +51,7 @@
       </div>
       <div class="card">
         <h2>Cotações atuais por fonte/praça</h2>
-        <p class="hint">
-          O "sinal de compra" compara o preço atual com a média móvel dos últimos dias coletados (até 14 dias) para aquela praça.
-          Fica mais confiável a cada dia de coleta — não é recomendação de investimento.
-        </p>
+        <p class="hint" id="signal-hint"></p>
         <p class="hint" id="fertilizantes-note" style="display:none;">
           <strong>Só há preço para calcário e gesso agrícola</strong>, baseado em anúncios reais do MF Rural (não é cotação
           oficial de mercado — varia bastante por vendedor, região e pureza, e pode ficar temporariamente indisponível).
@@ -84,6 +81,16 @@
   <script>
     const COMMODITY_LABELS = {soja: "Soja", milho: "Milho", hortifruti: "Hortifrúti", fertilizantes: "Fertilizantes"};
     const NEWS_ONLY_COMMODITIES = [];
+    const COMMODITY_SIGNAL_MODE = {fertilizantes: "compra"};
+    function signalModeFor(commodity) {
+      return COMMODITY_SIGNAL_MODE[commodity] || "venda";
+    }
+    function updateSignalHint(commodity) {
+      const mode = signalModeFor(commodity);
+      const acao = mode === "compra" ? "comprar" : "vender";
+      document.getElementById("signal-hint").textContent =
+        `O sinal indica se, comparado à média móvel dos últimos dias coletados (até 14 dias), este é um bom momento pra ${acao} — não é recomendação de investimento, fica mais confiável a cada dia de coleta.`;
+    }
     let currentCommodity = "soja";
     let chart = null;
 
@@ -95,16 +102,33 @@
     }
 
     const SIGNAL_INFO = {
-      bom_momento: { text: "Bom momento", cls: "signal-good" },
-      neutro: { text: "Neutro", cls: "signal-neutral" },
-      preco_elevado: { text: "Preço elevado", cls: "signal-bad" },
-      dados_insuficientes: { text: "Poucos dados ainda", cls: "signal-unknown" },
-      sem_dados: { text: "-", cls: "signal-unknown" },
+      favoravel: {
+        venda: { text: "Bom p/ vender", cls: "signal-good" },
+        compra: { text: "Bom p/ comprar", cls: "signal-good" },
+      },
+      desfavoravel: {
+        venda: { text: "Preço baixo", cls: "signal-bad" },
+        compra: { text: "Preço elevado", cls: "signal-bad" },
+      },
+      neutro: {
+        venda: { text: "Neutro", cls: "signal-neutral" },
+        compra: { text: "Neutro", cls: "signal-neutral" },
+      },
+      dados_insuficientes: {
+        venda: { text: "Poucos dados ainda", cls: "signal-unknown" },
+        compra: { text: "Poucos dados ainda", cls: "signal-unknown" },
+      },
+      sem_dados: {
+        venda: { text: "-", cls: "signal-unknown" },
+        compra: { text: "-", cls: "signal-unknown" },
+      },
     };
 
     function fmtSignal(sig) {
       if (!sig) return "-";
-      const info = SIGNAL_INFO[sig.label] || { text: sig.label, cls: "signal-unknown" };
+      const mode = sig.mode || "venda";
+      const byMode = SIGNAL_INFO[sig.label];
+      const info = (byMode && byMode[mode]) || { text: sig.label, cls: "signal-unknown" };
       const title = sig.days ? `${sig.days} dia(s) de histórico · média móvel (${sig.avg_window}d): ${sig.avg}` : "";
       return `<span class="signal-badge ${info.cls}" title="${title}">${info.text}</span>`;
     }
@@ -123,7 +147,8 @@
       } else if (rows.length === 0) {
         tableDiv.innerHTML = '<p class="empty">Nenhum produto/praça encontrado para essa busca.</p>';
       } else {
-        let html = "<table><thead><tr><th>Praça / Indicador</th><th>Fonte</th><th>Data</th><th>Valor</th><th>Var.</th><th>Sinal de compra</th></tr></thead><tbody>";
+        const signalHeader = signalModeFor(currentCommodity) === "compra" ? "Sinal de compra" : "Sinal de venda";
+        let html = `<table><thead><tr><th>Praça / Indicador</th><th>Fonte</th><th>Data</th><th>Valor</th><th>Var.</th><th>${signalHeader}</th></tr></thead><tbody>`;
         for (const row of rows) {
           html += `<tr><td>${row.market}</td><td>${row.source}</td><td>${row.date}</td><td>${row.price.toFixed(2)} ${row.unit || ""}</td><td>${fmtPct(row.change_pct)}</td><td>${fmtSignal(row.signal)}</td></tr>`;
         }
@@ -251,6 +276,7 @@
       });
       document.getElementById("no-price-card").style.display = newsOnly ? "" : "none";
       document.getElementById("fertilizantes-note").style.display = commodity === "fertilizantes" ? "" : "none";
+      updateSignalHint(commodity);
       const searchBox = document.getElementById("market-search");
       if (searchBox) searchBox.value = "";
       if (!newsOnly) loadPrices(commodity);

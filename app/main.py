@@ -22,6 +22,8 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 COMMODITIES = ["soja", "milho", "hortifruti", "fertilizantes"]
+# soja/milho/hortifruti: o usuário produz e vende. fertilizantes: o usuário compra.
+SIGNAL_MODE = {"fertilizantes": "compra"}
 STATIC_VERSION = int((BASE_DIR / "static" / "style.css").stat().st_mtime)
 
 
@@ -83,10 +85,11 @@ def api_prices(commodity: str):
     for row in history:
         history_by_market.setdefault(row["market"], []).append(row["price"])
 
+    mode = SIGNAL_MODE.get(commodity, "venda")
     latest_list = []
     for row in latest:
         d = dict(row)
-        d["signal"] = buy_signal(history_by_market.get(row["market"], [row["price"]]))
+        d["signal"] = buy_signal(history_by_market.get(row["market"], [row["price"]]), mode=mode)
         latest_list.append(d)
 
     return {
