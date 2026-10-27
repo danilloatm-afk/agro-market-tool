@@ -51,7 +51,18 @@ ANP_FUEL_ITEMS = {
     "GASOLINA COMUM": "Gasolina comum",
     "ETANOL HIDRATADO": "Etanol hidratado",
 }
+ANP_WEEKLY_STATES_URL = ANP_WEEKLY_URL.replace("semanal-brasil-desde-2013", "semanal-estados-desde-2013")
 ANP_HISTORY_DAYS = 730
+# nomes de estado como vêm na planilha da ANP (sem acento) -> UF
+ANP_STATE_UF = {
+    "ACRE": "AC", "ALAGOAS": "AL", "AMAPA": "AP", "AMAZONAS": "AM", "BAHIA": "BA",
+    "CEARA": "CE", "DISTRITO FEDERAL": "DF", "ESPIRITO SANTO": "ES", "GOIAS": "GO",
+    "MARANHAO": "MA", "MATO GROSSO": "MT", "MATO GROSSO DO SUL": "MS",
+    "MINAS GERAIS": "MG", "PARA": "PA", "PARAIBA": "PB", "PARANA": "PR",
+    "PERNAMBUCO": "PE", "PIAUI": "PI", "RIO DE JANEIRO": "RJ", "RIO GRANDE DO NORTE": "RN",
+    "RIO GRANDE DO SUL": "RS", "RONDONIA": "RO", "RORAIMA": "RR", "SANTA CATARINA": "SC",
+    "SAO PAULO": "SP", "SERGIPE": "SE", "TOCANTINS": "TO",
+}
 
 
 def _to_float(text: str):
@@ -320,48 +331,63 @@ def update_fertilizantes_prices():
     return _save_quotes("fertilizantes", fetch_mfrural_quotes())
 
 
-def fetch_anp_fuel_quotes():
-    """Preço médio semanal de revenda (Brasil) do levantamento oficial da ANP.
-    A planilha traz a série desde 2013; importamos só os últimos
-    ANP_HISTORY_DAYS dias, o que já dá histórico suficiente para o sinal na
-    primeira coleta. Cada semana é gravada na data final do período."""
-    try:
-        resp = httpx.get(ANP_WEEKLY_URL, headers=HEADERS, timeout=60, follow_redirects=True)
-        resp.raise_for_status()
-        wb = openpyxl.load_workbook(io.BytesIO(resp.content), read_only=True, data_only=True)
-    except Exception as exc:
-        logger.warning("Falha ao buscar planilha semanal da ANP: %s", exc)
-        return []
+def _anp_series(url: str, product_col: int, price_col: int, region_col=None):
+    """Lê uma planilha semanal da ANP e devolve {(região, produto): [(data, preço)]}.
+    Na planilha nacional não há coluna de região (usa 'Brasil')."""
+    resp = httpx.get(url, headers=HEADERS, timeout=90, follow_redirects=True)
+    resp.raise_for_status()
+    wb = openpyxl.load_workbook(io.BytesIO(resp.content), read_only=True, data_only=True)
 
-    cutoff = date.today() - timedelta(days=ANP_HISTORY_DAYS)
-    by_product = {}
+    series = {}
     for row in wb.worksheets[0].iter_rows(values_only=True):
-        if len(row) < 6 or not hasattr(row[1], "date") or row[2] not in ANP_FUEL_ITEMS:
+        if len(row) <= price_col or not hasattr(row[1], "date") or row[product_col] not in ANP_FUEL_ITEMS:
             continue
-        price = row[5]
+        price = row[price_col]
         if not isinstance(price, (int, float)):
             continue
-        by_product.setdefault(row[2], []).append((row[1].date(), float(price)))
+        region = ANP_STATE_UF.get(row[region_col]) if region_col is not None else "Brasil"
+        if region is None:
+            continue
+        series.setdefault((region, row[product_col]), []).append((row[1].date(), float(price)))
+    return series
 
+
+def fetch_anp_fuel_quotes():
+    """Preço médio semanal de revenda da ANP (fonte oficial), nacional e por
+    estado. As planilhas trazem a série desde 2013; importamos só os últimos
+    ANP_HISTORY_DAYS dias, o que já dá histórico suficiente para o sinal na
+    primeira coleta. Cada semana é gravada na data final do período."""
+    sources = [
+        (ANP_WEEKLY_URL, 2, 5, None),
+        (ANP_WEEKLY_STATES_URL, 4, 7, 3),
+    ]
+    cutoff = date.today() - timedelta(days=ANP_HISTORY_DAYS)
     quotes = []
-    for product, series in by_product.items():
-        series.sort()
-        previous = None
-        for week_end, price in series:
-            change_pct = (price - previous) / previous * 100 if previous else None
-            previous = price
-            if week_end < cutoff:
-                continue
-            quotes.append(
-                {
-                    "date": week_end.isoformat(),
-                    "market": f"{ANP_FUEL_ITEMS[product]} - Brasil",
-                    "source": "ANP (revenda, média semanal)",
-                    "price": price,
-                    "unit": "R$/l",
-                    "change_pct": round(change_pct, 2) if change_pct is not None else None,
-                }
-            )
+    for url, product_col, price_col, region_col in sources:
+        try:
+            series = _anp_series(url, product_col, price_col, region_col)
+        except Exception as exc:
+            logger.warning("Falha ao buscar planilha semanal da ANP (%s): %s", url.rsplit("/", 1)[-1], exc)
+            continue
+
+        for (region, product), points in series.items():
+            points.sort()
+            previous = None
+            for week_end, price in points:
+                change_pct = (price - previous) / previous * 100 if previous else None
+                previous = price
+                if week_end < cutoff:
+                    continue
+                quotes.append(
+                    {
+                        "date": week_end.isoformat(),
+                        "market": f"{ANP_FUEL_ITEMS[product]} - {region}",
+                        "source": "ANP (revenda, média semanal)",
+                        "price": price,
+                        "unit": "R$/l",
+                        "change_pct": round(change_pct, 2) if change_pct is not None else None,
+                    }
+                )
     return quotes
 
 

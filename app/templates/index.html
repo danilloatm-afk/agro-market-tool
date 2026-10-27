@@ -40,6 +40,7 @@
       <div class="card">
         <h2>Histórico de preços</h2>
         <div class="date-filter">
+          <label id="region-label" style="display:none;">Abrangência <select id="region-filter"></select></label>
           <label>De <input type="date" id="date-from"></label>
           <label>Até <input type="date" id="date-to"></label>
           <button id="date-reset" type="button">Período todo</button>
@@ -59,7 +60,7 @@
           fonte gratuita de preço atualizada; para eles, veja as notícias abaixo.
         </p>
         <p class="hint" id="combustivel-note" style="display:none;">
-          Preço médio de <strong>revenda ao consumidor no Brasil</strong>, levantamento semanal oficial da ANP (publicado
+          Preço médio de <strong>revenda ao consumidor</strong> (geral Brasil ou por estado — use o filtro "Abrangência"), levantamento semanal oficial da ANP (publicado
           toda semana, por isso os pontos são semanais e a média móvel considera as últimas 14 semanas).
         </p>
         <input type="text" id="market-search" class="search-box" placeholder="Buscar produto/praça (ex: cebola, cenoura, alho)...">
@@ -87,6 +88,19 @@
     const NEWS_ONLY_COMMODITIES = [];
     const COMMODITY_SIGNAL_MODE = {fertilizantes: "compra", combustivel: "compra"};
     const COMMODITY_PERIOD_UNIT = {combustivel: "semanas"};
+    const REGIONS = {
+      Brasil: "Brasil (geral)", AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas", BA: "Bahia", CE: "Ceará",
+      DF: "Distrito Federal", ES: "Espírito Santo", GO: "Goiás", MA: "Maranhão", MT: "Mato Grosso",
+      MS: "Mato Grosso do Sul", MG: "Minas Gerais", PA: "Pará", PB: "Paraíba", PR: "Paraná", PE: "Pernambuco",
+      PI: "Piauí", RJ: "Rio de Janeiro", RN: "Rio Grande do Norte", RS: "Rio Grande do Sul", RO: "Rondônia",
+      RR: "Roraima", SC: "Santa Catarina", SP: "São Paulo", SE: "Sergipe", TO: "Tocantins",
+    };
+    const regionSelect = document.getElementById("region-filter");
+    regionSelect.innerHTML = Object.entries(REGIONS).map(([k, v]) => `<option value="${k}">${k === "Brasil" ? v : `${v} (${k})`}</option>`).join("");
+    function inRegion(row) {
+      if (currentCommodity !== "combustivel") return true;
+      return row.market.endsWith(" - " + regionSelect.value);
+    }
     function signalModeFor(commodity) {
       return COMMODITY_SIGNAL_MODE[commodity] || "venda";
     }
@@ -144,9 +158,10 @@
     function renderLatestTable(filterText) {
       const tableDiv = document.getElementById("latest-table");
       const term = (filterText || "").trim().toLowerCase();
+      const scoped = currentLatest.filter(inRegion);
       const rows = term
-        ? currentLatest.filter(row => row.market.toLowerCase().includes(term) || row.source.toLowerCase().includes(term))
-        : currentLatest;
+        ? scoped.filter(row => row.market.toLowerCase().includes(term) || row.source.toLowerCase().includes(term))
+        : scoped;
 
       if (currentLatest.length === 0) {
         tableDiv.innerHTML = '<p class="empty">Ainda sem dados coletados para esta categoria. Clique em "Atualizar agora".</p>';
@@ -173,7 +188,7 @@
     }
 
     function renderChart(fromDate, toDate) {
-      const filtered = currentHistory.filter(row => (!fromDate || row.date >= fromDate) && (!toDate || row.date <= toDate));
+      const filtered = currentHistory.filter(row => inRegion(row) && (!fromDate || row.date >= fromDate) && (!toDate || row.date <= toDate));
 
       const byMarket = {};
       for (const row of filtered) {
@@ -291,6 +306,8 @@
       document.getElementById("no-price-card").style.display = newsOnly ? "" : "none";
       document.getElementById("fertilizantes-note").style.display = commodity === "fertilizantes" ? "" : "none";
       document.getElementById("combustivel-note").style.display = commodity === "combustivel" ? "" : "none";
+      document.getElementById("region-label").style.display = commodity === "combustivel" ? "" : "none";
+      regionSelect.value = "Brasil";
       updateSignalHint(commodity);
       const searchBox = document.getElementById("market-search");
       if (searchBox) searchBox.value = "";
@@ -300,6 +317,11 @@
 
     document.getElementById("market-search").addEventListener("input", (e) => {
       renderLatestTable(e.target.value);
+    });
+
+    regionSelect.addEventListener("change", () => {
+      renderChart(document.getElementById("date-from").value, document.getElementById("date-to").value);
+      renderLatestTable(document.getElementById("market-search").value);
     });
 
     document.getElementById("date-from").addEventListener("change", (e) => {
