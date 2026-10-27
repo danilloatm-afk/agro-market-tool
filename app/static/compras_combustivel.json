@@ -1,0 +1,534 @@
+{
+ "fonte": "Dashboard 'Pico de Preço nas Compras' (Power BI Gastos): valor das notas ÷ litros do mês",
+ "gerado_em": "2026-10-27",
+ "items": [
+  {
+   "month": "2025-01",
+   "date": "2025-01-15",
+   "product": "Diesel S10",
+   "price": 5.5781,
+   "liters": 72604,
+   "partial": false
+  },
+  {
+   "month": "2025-02",
+   "date": "2025-02-15",
+   "product": "Diesel S10",
+   "price": 5.8383,
+   "liters": 207398,
+   "partial": false
+  },
+  {
+   "month": "2025-03",
+   "date": "2025-03-15",
+   "product": "Diesel S10",
+   "price": 5.8467,
+   "liters": 311588,
+   "partial": false
+  },
+  {
+   "month": "2025-04",
+   "date": "2025-04-15",
+   "product": "Diesel S10",
+   "price": 5.6777,
+   "liters": 35779,
+   "partial": false
+  },
+  {
+   "month": "2025-05",
+   "date": "2025-05-15",
+   "product": "Diesel S10",
+   "price": 5.5252,
+   "liters": 29309,
+   "partial": false
+  },
+  {
+   "month": "2025-06",
+   "date": "2025-06-15",
+   "product": "Diesel S10",
+   "price": 5.8166,
+   "liters": 4497,
+   "partial": false
+  },
+  {
+   "month": "2025-07",
+   "date": "2025-07-15",
+   "product": "Diesel S10",
+   "price": 5.5027,
+   "liters": 27528,
+   "partial": false
+  },
+  {
+   "month": "2025-08",
+   "date": "2025-08-15",
+   "product": "Diesel S10",
+   "price": 5.541,
+   "liters": 47017,
+   "partial": false
+  },
+  {
+   "month": "2025-09",
+   "date": "2025-09-15",
+   "product": "Diesel S10",
+   "price": 5.4578,
+   "liters": 57894,
+   "partial": false
+  },
+  {
+   "month": "2025-10",
+   "date": "2025-10-15",
+   "product": "Diesel S10",
+   "price": 5.4896,
+   "liters": 31729,
+   "partial": false
+  },
+  {
+   "month": "2025-11",
+   "date": "2025-11-15",
+   "product": "Diesel S10",
+   "price": 5.5454,
+   "liters": 43910,
+   "partial": false
+  },
+  {
+   "month": "2025-12",
+   "date": "2025-12-15",
+   "product": "Diesel S10",
+   "price": 5.5299,
+   "liters": 28123,
+   "partial": false
+  },
+  {
+   "month": "2026-01",
+   "date": "2026-01-15",
+   "product": "Diesel S10",
+   "price": 5.3549,
+   "liters": 86993,
+   "partial": false
+  },
+  {
+   "month": "2026-02",
+   "date": "2026-02-15",
+   "product": "Diesel S10",
+   "price": 5.3425,
+   "liters": 146027,
+   "partial": false
+  },
+  {
+   "month": "2026-03",
+   "date": "2026-03-15",
+   "product": "Diesel S10",
+   "price": 6.9259,
+   "liters": 344106,
+   "partial": false
+  },
+  {
+   "month": "2026-04",
+   "date": "2026-04-15",
+   "product": "Diesel S10",
+   "price": 6.6878,
+   "liters": 160436,
+   "partial": false
+  },
+  {
+   "month": "2026-05",
+   "date": "2026-05-15",
+   "product": "Diesel S10",
+   "price": 6.2191,
+   "liters": 32691,
+   "partial": false
+  },
+  {
+   "month": "2026-06",
+   "date": "2026-06-15",
+   "product": "Diesel S10",
+   "price": 6.2117,
+   "liters": 43340,
+   "partial": false
+  },
+  {
+   "month": "2026-07",
+   "date": "2026-07-15",
+   "product": "Diesel S10",
+   "price": 6.0359,
+   "liters": 58818,
+   "partial": false
+  },
+  {
+   "month": "2026-08",
+   "date": "2026-08-15",
+   "product": "Diesel S10",
+   "price": 6.091,
+   "liters": 53202,
+   "partial": false
+  },
+  {
+   "month": "2026-09",
+   "date": "2026-09-15",
+   "product": "Diesel S10",
+   "price": 6.4129,
+   "liters": 61460,
+   "partial": false
+  },
+  {
+   "month": "2026-10",
+   "date": "2026-10-15",
+   "product": "Diesel S10",
+   "price": 6.8007,
+   "liters": 28434,
+   "partial": true
+  },
+  {
+   "month": "2025-01",
+   "date": "2025-01-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.529,
+   "liters": 244174,
+   "partial": false
+  },
+  {
+   "month": "2025-02",
+   "date": "2025-02-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.8398,
+   "liters": 438000,
+   "partial": false
+  },
+  {
+   "month": "2025-03",
+   "date": "2025-03-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.9424,
+   "liters": 549815,
+   "partial": false
+  },
+  {
+   "month": "2025-04",
+   "date": "2025-04-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.6152,
+   "liters": 320081,
+   "partial": false
+  },
+  {
+   "month": "2025-05",
+   "date": "2025-05-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.333,
+   "liters": 307127,
+   "partial": false
+  },
+  {
+   "month": "2025-06",
+   "date": "2025-06-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.301,
+   "liters": 227501,
+   "partial": false
+  },
+  {
+   "month": "2025-07",
+   "date": "2025-07-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.3796,
+   "liters": 239537,
+   "partial": false
+  },
+  {
+   "month": "2025-08",
+   "date": "2025-08-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.4317,
+   "liters": 292136,
+   "partial": false
+  },
+  {
+   "month": "2025-09",
+   "date": "2025-09-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.3968,
+   "liters": 307196,
+   "partial": false
+  },
+  {
+   "month": "2025-10",
+   "date": "2025-10-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.4149,
+   "liters": 303689,
+   "partial": false
+  },
+  {
+   "month": "2025-11",
+   "date": "2025-11-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.4445,
+   "liters": 240199,
+   "partial": false
+  },
+  {
+   "month": "2025-12",
+   "date": "2025-12-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.4152,
+   "liters": 196000,
+   "partial": false
+  },
+  {
+   "month": "2026-01",
+   "date": "2026-01-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.382,
+   "liters": 233000,
+   "partial": false
+  },
+  {
+   "month": "2026-02",
+   "date": "2026-02-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.3398,
+   "liters": 304000,
+   "partial": false
+  },
+  {
+   "month": "2026-03",
+   "date": "2026-03-15",
+   "product": "Diesel comum (S500)",
+   "price": 6.9878,
+   "liters": 588750,
+   "partial": false
+  },
+  {
+   "month": "2026-04",
+   "date": "2026-04-15",
+   "product": "Diesel comum (S500)",
+   "price": 6.5686,
+   "liters": 397622,
+   "partial": false
+  },
+  {
+   "month": "2026-05",
+   "date": "2026-05-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.7752,
+   "liters": 323877,
+   "partial": false
+  },
+  {
+   "month": "2026-06",
+   "date": "2026-06-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.5677,
+   "liters": 242000,
+   "partial": false
+  },
+  {
+   "month": "2026-07",
+   "date": "2026-07-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.5693,
+   "liters": 271222,
+   "partial": false
+  },
+  {
+   "month": "2026-08",
+   "date": "2026-08-15",
+   "product": "Diesel comum (S500)",
+   "price": 5.5983,
+   "liters": 296171,
+   "partial": false
+  },
+  {
+   "month": "2026-09",
+   "date": "2026-09-15",
+   "product": "Diesel comum (S500)",
+   "price": 6.0143,
+   "liters": 302693,
+   "partial": false
+  },
+  {
+   "month": "2026-10",
+   "date": "2026-10-15",
+   "product": "Diesel comum (S500)",
+   "price": 6.6928,
+   "liters": 178000,
+   "partial": true
+  },
+  {
+   "month": "2025-01",
+   "date": "2025-01-15",
+   "product": "Gasolina comum",
+   "price": 5.4577,
+   "liters": 49749,
+   "partial": false
+  },
+  {
+   "month": "2025-02",
+   "date": "2025-02-15",
+   "product": "Gasolina comum",
+   "price": 5.6178,
+   "liters": 42736,
+   "partial": false
+  },
+  {
+   "month": "2025-03",
+   "date": "2025-03-15",
+   "product": "Gasolina comum",
+   "price": 5.7539,
+   "liters": 44487,
+   "partial": false
+  },
+  {
+   "month": "2025-04",
+   "date": "2025-04-15",
+   "product": "Gasolina comum",
+   "price": 5.6237,
+   "liters": 39906,
+   "partial": false
+  },
+  {
+   "month": "2025-05",
+   "date": "2025-05-15",
+   "product": "Gasolina comum",
+   "price": 5.5947,
+   "liters": 47409,
+   "partial": false
+  },
+  {
+   "month": "2025-06",
+   "date": "2025-06-15",
+   "product": "Gasolina comum",
+   "price": 5.6033,
+   "liters": 32420,
+   "partial": false
+  },
+  {
+   "month": "2025-07",
+   "date": "2025-07-15",
+   "product": "Gasolina comum",
+   "price": 5.5912,
+   "liters": 40142,
+   "partial": false
+  },
+  {
+   "month": "2025-08",
+   "date": "2025-08-15",
+   "product": "Gasolina comum",
+   "price": 5.5006,
+   "liters": 43948,
+   "partial": false
+  },
+  {
+   "month": "2025-09",
+   "date": "2025-09-15",
+   "product": "Gasolina comum",
+   "price": 5.4682,
+   "liters": 36915,
+   "partial": false
+  },
+  {
+   "month": "2025-10",
+   "date": "2025-10-15",
+   "product": "Gasolina comum",
+   "price": 5.4565,
+   "liters": 45124,
+   "partial": false
+  },
+  {
+   "month": "2025-11",
+   "date": "2025-11-15",
+   "product": "Gasolina comum",
+   "price": 5.525,
+   "liters": 42329,
+   "partial": false
+  },
+  {
+   "month": "2025-12",
+   "date": "2025-12-15",
+   "product": "Gasolina comum",
+   "price": 5.4333,
+   "liters": 44078,
+   "partial": false
+  },
+  {
+   "month": "2026-01",
+   "date": "2026-01-15",
+   "product": "Gasolina comum",
+   "price": 5.5161,
+   "liters": 48354,
+   "partial": false
+  },
+  {
+   "month": "2026-02",
+   "date": "2026-02-15",
+   "product": "Gasolina comum",
+   "price": 5.4673,
+   "liters": 34787,
+   "partial": false
+  },
+  {
+   "month": "2026-03",
+   "date": "2026-03-15",
+   "product": "Gasolina comum",
+   "price": 6.0476,
+   "liters": 58088,
+   "partial": false
+  },
+  {
+   "month": "2026-04",
+   "date": "2026-04-15",
+   "product": "Gasolina comum",
+   "price": 5.9222,
+   "liters": 40881,
+   "partial": false
+  },
+  {
+   "month": "2026-05",
+   "date": "2026-05-15",
+   "product": "Gasolina comum",
+   "price": 5.8975,
+   "liters": 42824,
+   "partial": false
+  },
+  {
+   "month": "2026-06",
+   "date": "2026-06-15",
+   "product": "Gasolina comum",
+   "price": 5.9967,
+   "liters": 43503,
+   "partial": false
+  },
+  {
+   "month": "2026-07",
+   "date": "2026-07-15",
+   "product": "Gasolina comum",
+   "price": 5.7459,
+   "liters": 41341,
+   "partial": false
+  },
+  {
+   "month": "2026-08",
+   "date": "2026-08-15",
+   "product": "Gasolina comum",
+   "price": 5.6403,
+   "liters": 47585,
+   "partial": false
+  },
+  {
+   "month": "2026-09",
+   "date": "2026-09-15",
+   "product": "Gasolina comum",
+   "price": 5.6515,
+   "liters": 44770,
+   "partial": false
+  },
+  {
+   "month": "2026-10",
+   "date": "2026-10-15",
+   "product": "Gasolina comum",
+   "price": 5.5156,
+   "liters": 26539,
+   "partial": true
+  }
+ ]
+}
