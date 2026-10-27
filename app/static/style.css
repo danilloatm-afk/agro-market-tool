@@ -286,6 +286,31 @@ th { color: var(--muted); font-weight: 600; }
   color: var(--text);
   font-size: 0.82rem;
 }
+.date-filter select,
+.date-filter input[type="number"] {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--search-bg);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+.date-filter button[type="submit"] {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.date-filter button[type="submit"]:hover { color: #fff; opacity: 0.9; }
+.compra-del {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.compra-del:hover { color: var(--red); }
+#compra-list { max-height: 300px; overflow: auto; }
+#compra-summary { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .date-filter button {
   background: none;
   border: 1px solid var(--border);

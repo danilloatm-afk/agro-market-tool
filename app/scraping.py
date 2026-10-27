@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 import httpx
 import openpyxl
+import pdfplumber
 from bs4 import BeautifulSoup
 
 from .db import get_conn
@@ -53,6 +54,20 @@ ANP_FUEL_ITEMS = {
 }
 ANP_WEEKLY_STATES_URL = ANP_WEEKLY_URL.replace("semanal-brasil-desde-2013", "semanal-estados-desde-2013")
 ANP_HISTORY_DAYS = 730
+
+# Tabela de preços de venda da Petrobras às distribuidoras (sem tributos, à vista),
+# publicada em PDF no portal de preços. A lista de documentos vem da API pública
+# do portal; o PDF vigente traz o histórico por terminal (R$/m³).
+PETROBRAS_BASE = "https://precos.petrobras.com.br"
+PETROBRAS_DOCS_API = f"{PETROBRAS_BASE}/o/headless-delivery/v1.0/document-folders/1296637/documents"
+PETROBRAS_PRODUCTS = {"S10": "Diesel S10", "S500": "Diesel S500"}
+# modalidades marítimas (entrega por navio) ficam de fora para não distorcer a média por estado
+PETROBRAS_SKIP_MODALITIES = {"ETM", "LTM"}
+PETROBRAS_SOURCE = "Petrobras (venda às distribuidoras, s/ tributos)"
+_PB_DATE = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
+_PB_NUM = re.compile(r"^\d{1,3}(\.\d{3})*,\d{2}$")
+_PB_MODALITY = re.compile(r"^[A-Z]{3}$")
+_PB_UF = re.compile(r"\(([A-Z]{2})\)")
 # nomes de estado como vêm na planilha da ANP (sem acento) -> UF
 ANP_STATE_UF = {
     "ACRE": "AC", "ALAGOAS": "AL", "AMAPA": "AP", "AMAZONAS": "AM", "BAHIA": "BA",
@@ -391,8 +406,135 @@ def fetch_anp_fuel_quotes():
     return quotes
 
 
+def _petrobras_latest_pdf_url():
+    resp = httpx.get(
+        PETROBRAS_DOCS_API,
+        params={"pageSize": 50, "sort": "dateModified:desc", "fields": "title,contentUrl,dateModified"},
+        headers=HEADERS,
+        timeout=30,
+    )
+    resp.raise_for_status()
+    for item in resp.json().get("items", []):
+        title = item.get("title", "")
+        if "Diesel S500 e S10" in title and not re.search(r"\bEN\b", title):
+            return PETROBRAS_BASE + item["contentUrl"]
+    return None
+
+
+def _parse_petrobras_pdf(content: bytes):
+    """Devolve {(produto, uf, tipo, vigência): [R$/m³ por terminal]}. tipo é 'tabela'
+    (preço de tabela) ou 'desconto' (coluna 'com descontos MP ...', que existe a
+    partir de jun/2026, logo à direita da coluna de tabela da mesma vigência)."""
+    values = {}
+    with pdfplumber.open(io.BytesIO(content)) as pdf:
+        for page in pdf.pages:
+            words = page.extract_words(extra_attrs=["size"])
+            title = " ".join(w["text"] for w in words if w["top"] < 40) + " "
+            product = next((code for code in PETROBRAS_PRODUCTS if f"Diesel {code} " in title), None)
+            date_words = [w for w in words if w["top"] < 74 and _PB_DATE.match(w["text"])]
+            if not product or not date_words:
+                continue
+            # a coluna de tabela usa a fonte maior; os rótulos pequenos são das colunas "com descontos"
+            big = max(w["size"] for w in date_words)
+            cols = sorted(
+                ((w["x0"] + w["x1"]) / 2, w["text"]) for w in date_words if w["size"] >= big - 0.5
+            )
+            centers = [c for c, _ in cols]
+
+            rows = {}
+            for w in words:
+                if w["top"] > 74:
+                    rows.setdefault(round(w["top"] / 3), []).append(w)
+            for row in rows.values():
+                row.sort(key=lambda w: w["x0"])
+                texts = [w["text"] for w in row]
+                mi = next((i for i, t in enumerate(texts) if _PB_MODALITY.match(t)), None)
+                if mi is None or texts[mi] in PETROBRAS_SKIP_MODALITIES:
+                    continue
+                m = _PB_UF.search(" ".join(texts[:mi]))
+                if not m:
+                    continue
+                uf = m.group(1)
+                for w in row[mi + 1:]:
+                    if not _PB_NUM.match(w["text"]):
+                        continue
+                    x = (w["x0"] + w["x1"]) / 2
+                    idx = max((i for i, c in enumerate(centers) if c <= x + 3), default=None)
+                    if idx is None:
+                        continue
+                    kind = "tabela" if x - centers[idx] <= 10 else "desconto"
+                    d, mo, y = cols[idx][1].split(".")
+                    key = (product, uf, kind, date(int(y), int(mo), int(d)))
+                    values.setdefault(key, []).append(_to_float(w["text"]))
+    return values
+
+
+def fetch_petrobras_quotes():
+    """Preço de venda da Petrobras às distribuidoras (R$/l, sem tributos), por
+    estado e médio do Brasil (média simples dos estados), expandido em pontos
+    semanais (sábados, como a ANP) repetindo o último preço vigente."""
+    try:
+        url = _petrobras_latest_pdf_url()
+        if not url:
+            logger.warning("PDF de preços da Petrobras não encontrado na API")
+            return []
+        resp = httpx.get(url, headers=HEADERS, timeout=90, follow_redirects=True)
+        resp.raise_for_status()
+        raw = _parse_petrobras_pdf(resp.content)
+    except Exception as exc:
+        logger.warning("Falha ao buscar preços da Petrobras: %s", exc)
+        return []
+
+    # média por terminal -> UF; Brasil = média das UFs
+    by_region = {}
+    for (product, uf, kind, vig), vals in raw.items():
+        vals = [v for v in vals if v]
+        if vals:
+            by_region.setdefault((product, kind, uf), {})[vig] = sum(vals) / len(vals) / 1000
+    nacional = {}
+    for (product, kind, uf), series in list(by_region.items()):
+        for vig, price in series.items():
+            nacional.setdefault((product, kind), {}).setdefault(vig, []).append(price)
+    for (product, kind), series in nacional.items():
+        by_region[(product, kind, "Brasil")] = {vig: sum(p) / len(p) for vig, p in series.items()}
+
+    today = date.today()
+    last_saturday = today - timedelta(days=(today.weekday() - 5) % 7)
+    cutoff = today - timedelta(days=ANP_HISTORY_DAYS)
+    weeks = []
+    week_end = last_saturday
+    while week_end >= cutoff:
+        weeks.append(week_end)
+        week_end -= timedelta(days=7)
+    weeks.reverse()
+
+    quotes = []
+    for (product, kind, region), series in by_region.items():
+        vigencias = sorted(series)
+        label = f"Petrobras {PETROBRAS_PRODUCTS[product]} " + ("tabela" if kind == "tabela" else "c/ desconto MP")
+        previous = None
+        for week_end in weeks:
+            vigentes = [v for v in vigencias if v <= week_end]
+            if not vigentes:
+                continue
+            price = series[vigentes[-1]]
+            change_pct = (price - previous) / previous * 100 if previous else None
+            previous = price
+            quotes.append(
+                {
+                    "date": week_end.isoformat(),
+                    "market": f"{label} - {region}",
+                    "source": PETROBRAS_SOURCE,
+                    "price": round(price, 4),
+                    "unit": "R$/l s/ tributos",
+                    "change_pct": round(change_pct, 2) if change_pct is not None else None,
+                }
+            )
+    return quotes
+
+
 def update_combustivel_prices():
-    return _save_quotes("combustivel", fetch_anp_fuel_quotes())
+    return _save_quotes("combustivel", fetch_anp_fuel_quotes() + fetch_petrobras_quotes())
 
 
 def _save_quotes(commodity: str, quotes: list):

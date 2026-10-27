@@ -2,3 +2,6 @@ venv/
 __pycache__/
 *.pyc
 .claude/
+
+# preços de compra da empresa: não publicar (repositório é público)
+app/static/compras_combustivel.json

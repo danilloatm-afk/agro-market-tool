@@ -60,11 +60,33 @@
           fonte gratuita de preço atualizada; para eles, veja as notícias abaixo.
         </p>
         <p class="hint" id="combustivel-note" style="display:none;">
-          Preço médio de <strong>revenda ao consumidor</strong> (geral Brasil ou por estado — use o filtro "Abrangência"), levantamento semanal oficial da ANP (publicado
-          toda semana, por isso os pontos são semanais e a média móvel considera as últimas 14 semanas).
+          <strong>ANP</strong> = preço médio na <strong>bomba</strong> (revenda ao consumidor, com tributos), levantamento
+          semanal oficial. <strong>Petrobras</strong> = preço que a Petrobras cobra das <strong>distribuidoras</strong>,
+          <strong>sem tributos</strong>, vigente em cada semana (diesel S10 e S500): "tabela" é o preço cheio e
+          "c/ desconto MP" é a coluna "com descontos MP 1.363 / MP 1.391" que a Petrobras publica desde jun/2026. Não é o
+          preço que a distribuidora cobra de você — serve de referência de custo. Por estado = média dos terminais do
+          estado; Brasil = média dos estados. Use "Abrangência" para filtrar. A média móvel considera as últimas 14 semanas.
         </p>
         <input type="text" id="market-search" class="search-box" placeholder="Buscar produto/praça (ex: cebola, cenoura, alho)...">
         <div id="latest-table"><p class="empty">Carregando...</p></div>
+      </div>
+      <div class="card" id="compras-card" style="display:none;">
+        <h2>Meu preço de compra (distribuidora)</h2>
+        <p class="hint">
+          Registre o que você pagou na distribuidora. Aparece no gráfico como linha tracejada. Como a compra é direto da
+          distribuidora, a comparação principal é com o preço da <strong>Petrobras sem tributos</strong> (o preço de
+          venda da refinaria à distribuidora): a diferença até o seu preço cobre tributos, frete e margem da distribuidora.
+          Não dá para saber qual das duas colunas da Petrobras (tabela ou c/ desconto MP) a sua distribuidora paga. A bomba
+          (ANP) fica só como referência de teto. O que você digitar aqui fica salvo <strong>só neste navegador/computador</strong>.<span id="compra-imp-note"></span>
+        </p>
+        <form id="compra-form" class="date-filter">
+          <label>Data <input type="date" id="compra-date" required></label>
+          <label>Produto <select id="compra-product"></select></label>
+          <label>R$/litro <input type="number" id="compra-price" step="0.01" min="0.01" max="30" required style="width:90px;"></label>
+          <button type="submit">Adicionar</button>
+        </form>
+        <div id="compra-summary"></div>
+        <div id="compra-list"></div>
       </div>
       <div class="card" id="no-price-card" style="display:none;">
         <h2>Cotações</h2>
@@ -97,6 +119,122 @@
     };
     const regionSelect = document.getElementById("region-filter");
     regionSelect.innerHTML = Object.entries(REGIONS).map(([k, v]) => `<option value="${k}">${k === "Brasil" ? v : `${v} (${k})`}</option>`).join("");
+
+    const COMPRAS_KEY = "agro_compras_combustivel";
+    const COMPRA_PRODUCTS = ["Diesel S10", "Diesel comum (S500)", "Gasolina comum", "Etanol hidratado"];
+    const PETROBRAS_NAME = {"Diesel S10": "Diesel S10", "Diesel comum (S500)": "Diesel S500"};
+    function loadCompras() {
+      try {
+        const list = JSON.parse(localStorage.getItem(COMPRAS_KEY) || "[]");
+        return list.filter(c => COMPRA_PRODUCTS.includes(c.product) && /^\d{4}-\d{2}-\d{2}$/.test(c.date) && isFinite(c.price));
+      } catch (e) { return []; }
+    }
+    function saveCompras() {
+      try { localStorage.setItem(COMPRAS_KEY, JSON.stringify(compras)); } catch (e) {}
+    }
+    let compras = loadCompras();
+    let comprasImportadas = [];
+    const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+    const fmtMes = m => `${MESES[parseInt(m.slice(5, 7), 10) - 1]}/${m.slice(0, 4)}`;
+    const allCompras = () => [...comprasImportadas, ...compras];
+    async function loadComprasImportadas() {
+      try {
+        const res = await fetch("/static/compras_combustivel.json", {cache: "no-cache"});
+        if (!res.ok) return;
+        const data = await res.json();
+        comprasImportadas = (data.items || [])
+          .filter(i => COMPRA_PRODUCTS.includes(i.product) && /^\d{4}-\d{2}$/.test(i.month) && isFinite(i.price))
+          .map(i => ({id: "imp-" + i.month + i.product, date: i.date, product: i.product, price: i.price,
+                      imported: true, month: i.month, partial: !!i.partial, liters: i.liters}));
+        if (comprasImportadas.length) {
+          document.getElementById("compra-imp-note").textContent =
+            ` Os preços médios por mês já estão preenchidos a partir do dashboard "Pico de Preço nas Compras" (valor das notas ÷ litros, ${comprasImportadas.length} linhas).`;
+        }
+        if (currentCommodity === "combustivel" && currentHistory.length) {
+          renderChart(document.getElementById("date-from").value, document.getElementById("date-to").value);
+          renderCompras();
+        }
+      } catch (e) {}
+    }
+    const fmtBRL = v => v.toFixed(2).replace(".", ",");
+    const fmtDateBR = iso => iso.split("-").reverse().join("/");
+
+    function renderCompras() {
+      if (currentCommodity !== "combustivel") return;
+      const region = regionSelect.value;
+      const regionName = region === "Brasil" ? "Brasil" : region;
+      const latestFor = market => currentLatest.find(r => r.market === market);
+
+      const lines = [];
+      for (const product of COMPRA_PRODUCTS) {
+        const mine = allCompras().filter(c => c.product === product).sort((a, b) => b.date.localeCompare(a.date));
+        if (mine.length === 0) continue;
+        const last = mine[0];
+        const parts = [last.imported
+          ? `<strong>${product}</strong>: preço médio pago em ${fmtMes(last.month)}${last.partial ? " (mês em andamento)" : ""} R$ ${fmtBRL(last.price)}/l`
+          : `<strong>${product}</strong>: sua última compra R$ ${fmtBRL(last.price)}/l em ${fmtDateBR(last.date)}`];
+        // compra direto da distribuidora: referência principal = Petrobras s/ tributos (custo da distribuidora)
+        if (PETROBRAS_NAME[product]) {
+          const base = `Petrobras ${PETROBRAS_NAME[product]}`;
+          const tab = latestFor(`${base} tabela - ${region}`);
+          const desc = latestFor(`${base} c/ desconto MP - ${region}`);
+          if (tab) {
+            const spread = last.price - tab.price;
+            parts.push(`Petrobras s/ tributos (${regionName}): tabela R$ ${fmtBRL(tab.price)}` +
+              (desc ? ` · c/ desconto MP R$ ${fmtBRL(desc.price)}` : "") +
+              ` → você paga R$ ${fmtBRL(Math.abs(spread))}/l ${spread >= 0 ? "acima" : "abaixo"} da tabela` +
+              (desc ? ` e R$ ${fmtBRL(Math.abs(last.price - desc.price))}/l ${last.price >= desc.price ? "acima" : "abaixo"} do preço c/ desconto MP` : ""));
+          }
+        }
+        const anp = latestFor(`${product} - ${region}`);
+        if (anp) {
+          const pct = (last.price - anp.price) / anp.price * 100;
+          parts.push(`bomba ANP (${regionName}) R$ ${fmtBRL(anp.price)}, referência de teto: você paga ${Math.abs(pct).toFixed(1).replace(".", ",")}% ${pct <= 0 ? "abaixo" : "acima"}`);
+        }
+        lines.push(`<div class="period-row" style="flex-wrap:wrap;">${parts.join(" · ")}</div>`);
+      }
+      document.getElementById("compra-summary").innerHTML = lines.join("");
+
+      const list = allCompras().sort((a, b) => b.date.localeCompare(a.date));
+      document.getElementById("compra-list").innerHTML = list.length === 0
+        ? '<p class="empty">Nenhuma compra registrada ainda.</p>'
+        : `<table><thead><tr><th>Data</th><th>Produto</th><th>R$/l</th><th></th></tr></thead><tbody>${
+            list.map(c => c.imported
+              ? `<tr><td>${fmtMes(c.month)} <span class="hint" style="margin:0">(média${c.partial ? ", em andamento" : ""})</span></td><td>${c.product}</td><td title="${c.liters ? c.liters.toLocaleString("pt-BR") + " litros no mês" : ""}">${fmtBRL(c.price)}</td><td></td></tr>`
+              : `<tr><td>${fmtDateBR(c.date)}</td><td>${c.product}</td><td>${fmtBRL(c.price)}</td>` +
+                `<td><button type="button" class="compra-del" data-id="${c.id}" title="Remover">✕</button></td></tr>`).join("")
+          }</tbody></table>`;
+    }
+
+    // pontos das compras alinhados ao eixo semanal do gráfico (semana = primeiro rótulo >= data da compra)
+    function compraDatasets(labels, fromDate, toDate, colorOffset, palette) {
+      if (currentCommodity !== "combustivel" || labels.length === 0) return [];
+      const sets = [];
+      for (const product of COMPRA_PRODUCTS) {
+        const mine = allCompras().filter(c => c.product === product && (!fromDate || c.date >= fromDate) && (!toDate || c.date <= toDate));
+        if (mine.length === 0) continue;
+        const sums = new Array(labels.length).fill(null), counts = new Array(labels.length).fill(0);
+        for (const c of mine) {
+          let idx = labels.findIndex(l => l >= c.date);
+          if (idx === -1) idx = labels.length - 1;
+          sums[idx] = (sums[idx] || 0) + c.price;
+          counts[idx] += 1;
+        }
+        sets.push({
+          label: `Minha compra - ${product}`,
+          data: sums.map((v, i) => (v === null ? null : v / counts[i])),
+          borderColor: palette[(colorOffset + sets.length) % palette.length],
+          backgroundColor: "transparent",
+          borderDash: [6, 4],
+          borderWidth: 2,
+          pointRadius: 5,
+          pointStyle: "rectRot",
+          spanGaps: true,
+          tension: 0,
+        });
+      }
+      return sets;
+    }
     function inRegion(row) {
       if (currentCommodity !== "combustivel") return true;
       return row.market.endsWith(" - " + regionSelect.value);
@@ -195,8 +333,8 @@
         if (!byMarket[row.market]) byMarket[row.market] = [];
         byMarket[row.market].push({x: row.date, y: row.price});
       }
-      const markets = Object.keys(byMarket).sort((a,b) => byMarket[b].length - byMarket[a].length).slice(0, 6);
-      const palette = ["#2e7d32", "#f5a623", "#1565c0", "#c62828", "#6a1b9a", "#00838f"];
+      const markets = Object.keys(byMarket).sort((a,b) => byMarket[b].length - byMarket[a].length).slice(0, 8);
+      const palette = ["#2e7d32", "#f5a623", "#1565c0", "#c62828", "#6a1b9a", "#00838f", "#8d6e63", "#546e7a", "#d81b60", "#7cb342"];
 
       // eixo de datas comum: cada série vira um array alinhado às datas (null onde não há cotação)
       const labels = [...new Set(filtered.map(row => row.date))].sort();
@@ -213,6 +351,8 @@
           pointHoverRadius: 4,
         };
       });
+
+      datasets.push(...compraDatasets(labels, fromDate, toDate, markets.length, palette));
 
       const ctx = document.getElementById("priceChart");
       if (chart) chart.destroy();
@@ -277,6 +417,7 @@
       currentLatest = data.latest;
       const searchBox = document.getElementById("market-search");
       renderLatestTable(searchBox ? searchBox.value : "");
+      renderCompras();
     }
 
     async function loadNews(commodity) {
@@ -307,6 +448,7 @@
       document.getElementById("fertilizantes-note").style.display = commodity === "fertilizantes" ? "" : "none";
       document.getElementById("combustivel-note").style.display = commodity === "combustivel" ? "" : "none";
       document.getElementById("region-label").style.display = commodity === "combustivel" ? "" : "none";
+      document.getElementById("compras-card").style.display = commodity === "combustivel" ? "" : "none";
       regionSelect.value = "Brasil";
       updateSignalHint(commodity);
       const searchBox = document.getElementById("market-search");
@@ -319,9 +461,34 @@
       renderLatestTable(e.target.value);
     });
 
+
+    document.getElementById("compra-product").innerHTML = COMPRA_PRODUCTS.map(p => `<option>${p}</option>`).join("");
+    document.getElementById("compra-date").value = new Date().toLocaleDateString("sv-SE");
+    document.getElementById("compra-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const date = document.getElementById("compra-date").value;
+      const price = parseFloat(document.getElementById("compra-price").value);
+      const product = document.getElementById("compra-product").value;
+      if (!date || !isFinite(price) || price <= 0) return;
+      compras.push({id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date, product, price});
+      saveCompras();
+      document.getElementById("compra-price").value = "";
+      renderChart(document.getElementById("date-from").value, document.getElementById("date-to").value);
+      renderCompras();
+    });
+    document.getElementById("compra-list").addEventListener("click", (e) => {
+      const btn = e.target.closest(".compra-del");
+      if (!btn) return;
+      compras = compras.filter(c => c.id !== btn.dataset.id);
+      saveCompras();
+      renderChart(document.getElementById("date-from").value, document.getElementById("date-to").value);
+      renderCompras();
+    });
+
     regionSelect.addEventListener("change", () => {
       renderChart(document.getElementById("date-from").value, document.getElementById("date-to").value);
       renderLatestTable(document.getElementById("market-search").value);
+      renderCompras();
     });
 
     document.getElementById("date-from").addEventListener("change", (e) => {
@@ -379,6 +546,7 @@
     });
 
     loadAll(currentCommodity);
+    loadComprasImportadas();
   </script>
 </body>
 </html>
