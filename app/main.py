@@ -21,9 +21,9 @@ app = FastAPI(title="Análise de Mercado - Agro")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
-COMMODITIES = ["soja", "milho", "hortifruti", "fertilizantes"]
-# soja/milho/hortifruti: o usuário produz e vende. fertilizantes: o usuário compra.
-SIGNAL_MODE = {"fertilizantes": "compra"}
+COMMODITIES = ["soja", "milho", "hortifruti", "fertilizantes", "combustivel"]
+# soja/milho/hortifruti: o usuário produz e vende. fertilizantes/combustível: o usuário compra.
+SIGNAL_MODE = {"fertilizantes": "compra", "combustivel": "compra"}
 STATIC_VERSION = int((BASE_DIR / "static" / "style.css").stat().st_mtime)
 
 
