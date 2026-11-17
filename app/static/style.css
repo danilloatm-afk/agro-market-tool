@@ -310,6 +310,13 @@ th { color: var(--muted); font-weight: 600; }
 }
 .compra-del:hover { color: var(--red); }
 #compra-list { max-height: 300px; overflow: auto; }
+.legend-table { margin-bottom: 14px; overflow-x: auto; }
+.legend-table table { font-size: 0.8rem; background: var(--search-bg); border-radius: 6px; }
+.legend-table th { white-space: nowrap; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.legend-table td { vertical-align: top; }
+.legend-table td:first-child { white-space: nowrap; }
+.legend-table .hint { margin: 2px 0 0; }
+.legend-table > .hint { margin: 8px 0 0; }
 #compra-summary { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .date-filter button {
   background: none;

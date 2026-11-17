@@ -59,14 +59,44 @@
           Ureia, sulfato de amônio, MAP/DAP, cloreto de potássio e demais nitrogenados/fosfatados/potássicos ainda não têm
           fonte gratuita de preço atualizada; para eles, veja as notícias abaixo.
         </p>
-        <p class="hint" id="combustivel-note" style="display:none;">
-          <strong>ANP</strong> = preço médio na <strong>bomba</strong> (revenda ao consumidor, com tributos), levantamento
-          semanal oficial. <strong>Petrobras</strong> = preço que a Petrobras cobra das <strong>distribuidoras</strong>,
-          <strong>sem tributos</strong>, vigente em cada semana (diesel S10 e S500): "tabela" é o preço cheio e
-          "c/ desconto MP" é a coluna "com descontos MP 1.363 / MP 1.391" que a Petrobras publica desde jun/2026. Não é o
-          preço que a distribuidora cobra de você — serve de referência de custo. Por estado = média dos terminais do
-          estado; Brasil = média dos estados. Use "Abrangência" para filtrar. A média móvel considera as últimas 14 semanas.
-        </p>
+        <div id="combustivel-note" class="legend-table" style="display:none;">
+          <table>
+            <thead>
+              <tr><th>Série</th><th>O que é</th><th>Tributos</th><th>Frequência</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>ANP</strong><br><span class="hint">Diesel S10, S500, gasolina, etanol</span></td>
+                <td>Preço médio na <strong>bomba</strong> (revenda ao consumidor). Levantamento oficial da ANP.</td>
+                <td>Com tributos</td>
+                <td>Semanal</td>
+              </tr>
+              <tr>
+                <td><strong>Petrobras tabela</strong><br><span class="hint">Diesel S10 e S500</span></td>
+                <td>Preço cheio que a Petrobras cobra das <strong>distribuidoras</strong>.</td>
+                <td>Sem tributos</td>
+                <td>Vigente em cada semana</td>
+              </tr>
+              <tr>
+                <td><strong>Petrobras c/ desconto MP</strong><br><span class="hint">Diesel S10 e S500</span></td>
+                <td>Coluna "com descontos MP 1.363 / MP 1.391", publicada pela Petrobras desde jun/2026.</td>
+                <td>Sem tributos</td>
+                <td>Vigente em cada semana</td>
+              </tr>
+              <tr>
+                <td><strong>Minha compra</strong><br><span class="hint">Diesel S10, S500, gasolina</span></td>
+                <td>Preço médio pago por vocês (valor das notas ÷ litros), do card "Meu preço de compra".</td>
+                <td>Valor da nota</td>
+                <td>Mensal</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="hint">
+            Os preços da Petrobras não são o que a distribuidora cobra de você; servem de referência de custo. Por estado =
+            média dos terminais do estado; Brasil = média dos estados (use "Abrangência" para filtrar). A média móvel
+            considera as últimas 14 semanas.
+          </p>
+        </div>
         <input type="text" id="market-search" class="search-box" placeholder="Buscar produto/praça (ex: cebola, cenoura, alho)...">
         <div id="latest-table"><p class="empty">Carregando...</p></div>
       </div>
@@ -142,10 +172,11 @@
         const res = await fetch("/static/compras_combustivel.json", {cache: "no-cache"});
         if (!res.ok) return;
         const data = await res.json();
+        const currentMonth = new Date().toLocaleDateString("sv-SE").slice(0, 7);
         comprasImportadas = (data.items || [])
           .filter(i => COMPRA_PRODUCTS.includes(i.product) && /^\d{4}-\d{2}$/.test(i.month) && isFinite(i.price))
           .map(i => ({id: "imp-" + i.month + i.product, date: i.date, product: i.product, price: i.price,
-                      imported: true, month: i.month, partial: !!i.partial, liters: i.liters}));
+                      imported: true, month: i.month, partial: i.month === currentMonth, liters: i.liters}));
         if (comprasImportadas.length) {
           document.getElementById("compra-imp-note").textContent =
             ` Os preços médios por mês já estão preenchidos a partir do dashboard "Pico de Preço nas Compras" (valor das notas ÷ litros, ${comprasImportadas.length} linhas).`;

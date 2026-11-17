@@ -1,6 +1,6 @@
 {
  "fonte": "Dashboard 'Pico de Preço nas Compras' (Power BI Gastos): valor das notas ÷ litros do mês",
- "gerado_em": "2026-10-27",
+ "gerado_em": "2026-11-17",
  "items": [
   {
    "month": "2025-01",
@@ -174,9 +174,9 @@
    "month": "2026-10",
    "date": "2026-10-15",
    "product": "Diesel S10",
-   "price": 6.8007,
-   "liters": 28434,
-   "partial": true
+   "price": 6.7755,
+   "liters": 33570,
+   "partial": false
   },
   {
    "month": "2025-01",
@@ -350,9 +350,9 @@
    "month": "2026-10",
    "date": "2026-10-15",
    "product": "Diesel comum (S500)",
-   "price": 6.6928,
-   "liters": 178000,
-   "partial": true
+   "price": 6.6854,
+   "liters": 245000,
+   "partial": false
   },
   {
    "month": "2025-01",
@@ -526,9 +526,9 @@
    "month": "2026-10",
    "date": "2026-10-15",
    "product": "Gasolina comum",
-   "price": 5.5156,
-   "liters": 26539,
-   "partial": true
+   "price": 5.5038,
+   "liters": 31766,
+   "partial": false
   }
  ]
 }
